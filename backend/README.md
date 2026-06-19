@@ -24,12 +24,6 @@ npm run dev
 
 Make sure MongoDB is running locally or update `MONGO_URI` in `.env`.
 
-## Demo Accounts
-
-After running `npm run seed`:
-
-- Candidate: `candidate@careernest.com` / `Password123`
-- Employer: `employer@careernest.com` / `Password123`
 
 ## API Base URL
 
@@ -131,11 +125,6 @@ In the React project, set:
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
-Axios should send:
-
-```js
-Authorization: Bearer <token>
-```
 
 The current frontend service already reads `VITE_API_BASE_URL` and attaches the token from local storage.
 
