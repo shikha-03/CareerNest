@@ -1,15 +1,28 @@
 import nodemailer from "nodemailer";
 import dns from "dns";
+import { promisify } from "util";
 
 dns.setDefaultResultOrder("ipv4first");
+const resolve4 = promisify(dns.resolve4);
 
-function createTransport() {
-  if (!process.env.SMTP_HOST) {
+async function createTransport() {
+  const smtpHost = process.env.SMTP_HOST;
+  if (!smtpHost) {
     return null;
   }
 
+  let host = smtpHost;
+  try {
+    const addresses = await resolve4(smtpHost);
+    if (addresses.length > 0) {
+      host = addresses[0];
+    }
+  } catch (error) {
+    console.warn(`Could not resolve IPv4 SMTP host ${smtpHost}: ${error.message}`);
+  }
+
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host,
     port: Number(process.env.SMTP_PORT || 587),
     secure: Number(process.env.SMTP_PORT) === 465,
     auth: {
@@ -22,13 +35,13 @@ function createTransport() {
     socketTimeout: 30000,
     family: 4,
     tls: {
-      servername: process.env.SMTP_HOST
+      servername: smtpHost
     }
   });
 }
 
 export async function sendEmail({ to, subject, html, requireDelivery = false }) {
-  const transporter = createTransport();
+  const transporter = await createTransport();
   if (!transporter) {
     if (requireDelivery) {
       throw new Error("SMTP is not configured. Cannot deliver email.");
