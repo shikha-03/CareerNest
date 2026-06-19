@@ -93,7 +93,7 @@ async function run() {
   });
   ok("POST /api/auth/send-signup-otp rejects invalid MX");
 
-  if (process.env.SMTP_HOST && process.env.SMOKE_TEST_EMAIL) {
+  if ((process.env.RESEND_API_KEY || process.env.SMTP_HOST) && process.env.SMOKE_TEST_EMAIL) {
     await request("POST", "/api/auth/send-signup-otp", {
       body: {
         name: "SMTP Smoke User",

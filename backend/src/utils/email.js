@@ -5,6 +5,43 @@ import { promisify } from "util";
 dns.setDefaultResultOrder("ipv4first");
 const resolve4 = promisify(dns.resolve4);
 
+function plainTextFromHtml(html) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function sendWithResend({ to, subject, html }) {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: process.env.EMAIL_FROM,
+      to,
+      subject,
+      html,
+      text: plainTextFromHtml(html)
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || `Resend email failed with status ${response.status}`);
+  }
+
+  return { accepted: [to], provider: "resend", data };
+}
+
 async function createTransport() {
   const smtpHost = process.env.SMTP_HOST;
   if (!smtpHost) {
@@ -41,10 +78,15 @@ async function createTransport() {
 }
 
 export async function sendEmail({ to, subject, html, requireDelivery = false }) {
+  const resendInfo = await sendWithResend({ to, subject, html });
+  if (resendInfo) {
+    return resendInfo;
+  }
+
   const transporter = await createTransport();
   if (!transporter) {
     if (requireDelivery) {
-      throw new Error("SMTP is not configured. Cannot deliver email.");
+      throw new Error("Email provider is not configured. Add RESEND_API_KEY or SMTP settings.");
     }
     console.log(`[email skipped] ${subject} -> ${to}`);
     return;
