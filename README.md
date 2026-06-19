@@ -107,3 +107,18 @@ CareerNest/
 ├── vite.config.js
 ├── .env.example
 └── .gitignore
+
+
+Getting Started
+Prerequisites
+Install the following:
+Node.js
+npm
+MongoDB
+Frontend Setup
+Install dependencies:
+npm install
+Create a .env file in the root folder:
+
+Start the frontend:
+npm run dev
